@@ -58,4 +58,4 @@ https://d1uhuxvqjmqigt.cloudfront.net/
 
 ## S3-website
 
-http://deploywebappstack-deploymentfrontendbucket67ceb713-nwuivnaj647g.s3-website-us-east-1.amazonaws.com/
+https://deploywebappstack-deploymentfrontendbucket67ceb713-nwuivnaj647g.s3.us-east-1.amazonaws.com/index.html
