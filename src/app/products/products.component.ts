@@ -1,7 +1,12 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { ProductsService } from './products.service';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+} from '@angular/core';
 import { ProductItemComponent } from './product-item/product-item.component';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { ApiGatewayService } from '../shared/services/apiGateway.service';
 
 @Component({
   selector: 'app-products',
@@ -12,7 +17,17 @@ import { toSignal } from '@angular/core/rxjs-interop';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProductsComponent {
-  products = toSignal(inject(ProductsService).getProducts(), {
+  constructor() {
+    // effect runs whenever `products()` changes
+    effect(() => {
+      console.log('Products updated:', this.products());
+    });
+  }
+  // products = toSignal(inject(ProductsService).getProducts(), {
+  //   initialValue: [],
+  // });
+
+  products = toSignal(inject(ApiGatewayService).getProducts(), {
     initialValue: [],
   });
 }
