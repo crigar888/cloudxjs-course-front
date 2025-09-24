@@ -8,7 +8,7 @@ import { Product } from '../../products/product.interface';
 })
 export class ApiGatewayService {
   private readonly baseUrl =
-    'https://kqhjaex7mc.execute-api.us-east-1.amazonaws.com/prod';
+    'https://c2frnspmwc.execute-api.us-east-1.amazonaws.com/prod';
 
   constructor(private http: HttpClient) {}
 

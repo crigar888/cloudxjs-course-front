@@ -5,6 +5,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 import * as path from 'path';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 
 export class ProductsLambdaStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -14,6 +15,7 @@ export class ProductsLambdaStack extends cdk.Stack {
       this,
       'get-products-list-lambda',
       {
+        functionName: 'getProductsListLambda',
         runtime: lambda.Runtime.NODEJS_20_X,
         memorySize: 1024,
         timeout: cdk.Duration.seconds(5),
@@ -112,5 +114,46 @@ export class ProductsLambdaStack extends cdk.Stack {
         ],
       },
     );
+
+    const productsTable = new dynamodb.Table(this, 'ProductsTable', {
+      tableName: 'products',
+      partitionKey: {
+        name: 'id',
+        type: dynamodb.AttributeType.STRING,
+      },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    const stockTable = new dynamodb.Table(this, 'StockTable', {
+      tableName: 'stock',
+      partitionKey: {
+        name: 'product_id',
+        type: dynamodb.AttributeType.STRING,
+      },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    const addProductsLambda = new NodejsFunction(this, 'AddProductsLambda', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      memorySize: 1024,
+      timeout: cdk.Duration.seconds(5),
+      entry: path.join(__dirname, '../dynamoDB/handler.ts'),
+      handler: 'addProducts',
+      environment: {
+        TABLE_NAME: productsTable.tableName,
+        STOCK_TABLE: stockTable.tableName,
+      },
+    });
+
+    const lambdas = [
+      addProductsLambda,
+      getProductsListLambda,
+      getProductsByIdLambda,
+    ];
+
+    lambdas.forEach((fn) => {
+      productsTable.grantReadWriteData(fn);
+      stockTable.grantReadWriteData(fn);
+    });
   }
 }
