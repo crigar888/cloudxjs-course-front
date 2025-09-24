@@ -82,7 +82,7 @@ export class ProductsLambdaStack extends cdk.Stack {
 
     productsResource.addCorsPreflight({
       allowOrigins: ['https://d1uhuxvqjmqigt.cloudfront.net'],
-      allowMethods: ['GET'],
+      allowMethods: ['GET', 'POST'],
     });
 
     // /products/{productId}
@@ -145,10 +145,53 @@ export class ProductsLambdaStack extends cdk.Stack {
       },
     });
 
+    const createProductLambda = new NodejsFunction(
+      this,
+      'create-product-lambda',
+      {
+        functionName: 'createProductLambda',
+        runtime: lambda.Runtime.NODEJS_20_X,
+        memorySize: 1024,
+        timeout: cdk.Duration.seconds(5),
+        entry: path.join(__dirname, 'createProduct.ts'),
+        handler: 'main',
+        environment: {
+          PRODUCTS_TABLE: productsTable.tableName,
+        },
+      },
+    );
+
+    productsResource.addMethod(
+      'POST',
+      new apigateway.LambdaIntegration(getProductsByIdLambda, {
+        proxy: false,
+        integrationResponses: [
+          {
+            statusCode: '200',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin':
+                "'https://d1uhuxvqjmqigt.cloudfront.net'",
+            },
+          },
+        ],
+      }),
+      {
+        methodResponses: [
+          {
+            statusCode: '201',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin': true,
+            },
+          },
+        ],
+      },
+    );
+
     const lambdas = [
       addProductsLambda,
       getProductsListLambda,
       getProductsByIdLambda,
+      createProductLambda,
     ];
 
     lambdas.forEach((fn) => {
