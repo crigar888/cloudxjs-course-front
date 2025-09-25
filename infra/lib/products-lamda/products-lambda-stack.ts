@@ -1,116 +1,97 @@
 // Filename: hello-lambda-stack.ts
 import * as cdk from 'aws-cdk-lib';
-import * as apigateway from 'aws-cdk-lib/aws-apigateway';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
-import * as path from 'path';
+import { DynamoDBService } from '../dynamoDB/dynamoDB.service';
+import { ApiGatewayService } from '../gateway/apiGateway.service';
+import { LambdaService } from '../lambdas/lambda.service';
 
 export class ProductsLambdaStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const getProductsListLambda = new NodejsFunction(
-      this,
+    const lambdaService = new LambdaService(this);
+    const apiGatewayService = new ApiGatewayService(this);
+    const dynamoService = new DynamoDBService(this);
+
+    const getProductsListLambda = lambdaService.createBasicLamda(
       'get-products-list-lambda',
-      {
-        runtime: lambda.Runtime.NODEJS_20_X,
-        memorySize: 1024,
-        timeout: cdk.Duration.seconds(5),
-        entry: path.join(__dirname, 'getProductsList.ts'),
-        handler: 'main',
-      },
+      'getProductsListLambda',
+      'getProductsList',
     );
 
-    const getProductsByIdLambda = new NodejsFunction(
-      this,
+    const getProductsByIdLambda = lambdaService.createBasicLamda(
       'get-products-by-id-lambda',
-      {
-        runtime: lambda.Runtime.NODEJS_20_X,
-        memorySize: 1024,
-        timeout: cdk.Duration.seconds(5),
-        entry: path.join(__dirname, 'getProductsById.ts'),
-        handler: 'main',
-      },
+      'getProductsByIdLambda',
+      'getProductsById',
     );
 
-    const api = new apigateway.RestApi(this, 'my-api', {
-      restApiName: 'My API Gateway',
-      description: 'This API serves the Lambda functions.',
-    });
+    const api = apiGatewayService.createApiGateway();
 
     // /products
-    const productsFromLambdaIntegration = new apigateway.LambdaIntegration(
-      getProductsListLambda,
-      {
-        proxy: false,
-        integrationResponses: [
-          {
-            statusCode: '200',
-            responseParameters: {
-              'method.response.header.Access-Control-Allow-Origin':
-                "'https://d1uhuxvqjmqigt.cloudfront.net'",
-              'method.response.header.Access-Control-Allow-Headers':
-                "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
-              'method.response.header.Access-Control-Allow-Methods':
-                "'GET,OPTIONS'",
-            },
-          },
-        ],
-        requestTemplates: {
-          'application/json': '{ "statusCode": 200 }',
-        },
-      },
-    );
+    const productsFromLambdaIntegration =
+      apiGatewayService.createLamdaIntegration(
+        getProductsListLambda,
+        'products',
+      );
 
-    const productsResource = api.root.addResource('products');
+    const productsResource = api.root.addResource(
+      apiGatewayService.URLS.products,
+    );
 
     productsResource.addMethod('GET', productsFromLambdaIntegration, {
-      methodResponses: [
-        {
-          statusCode: '200',
-          responseParameters: {
-            'method.response.header.Access-Control-Allow-Origin': true,
-            'method.response.header.Access-Control-Allow-Headers': true,
-            'method.response.header.Access-Control-Allow-Methods': true,
-          },
-        },
-      ],
+      methodResponses: apiGatewayService.METHOD_RESPONSES,
     });
 
-    productsResource.addCorsPreflight({
-      allowOrigins: ['https://d1uhuxvqjmqigt.cloudfront.net'],
-      allowMethods: ['GET'],
-    });
+    apiGatewayService.addCoresPreflight(productsResource, ['GET', 'POST']);
 
     // /products/{productId}
-    productsResource.addResource('{productId}').addMethod(
-      'GET',
-      new apigateway.LambdaIntegration(getProductsByIdLambda, {
-        proxy: false,
-        integrationResponses: [
-          {
-            statusCode: '200',
-            responseParameters: {
-              'method.response.header.Access-Control-Allow-Origin':
-                "'https://d1uhuxvqjmqigt.cloudfront.net'",
-            },
-          },
-        ],
-        requestTemplates: {
-          'application/json': `{ "productId": "$input.params('productId')" }`,
-        },
-      }),
+
+    const productByIdFromLambdaIntegration =
+      apiGatewayService.createLamdaIntegration(
+        getProductsByIdLambda,
+        'productId',
+      );
+    productsResource
+      .addResource('{productId}')
+      .addMethod('GET', productByIdFromLambdaIntegration, {
+        methodResponses: apiGatewayService.METHOD_RESPONSES,
+      });
+
+    const { productsTable, stockTable } = dynamoService.createTables();
+
+    const addProductsLambda = lambdaService.createBasicLamda(
+      'add-products-lambda',
+      'addProductsLambda',
+      'postProducts',
+    );
+
+    const createProductLambda = lambdaService.createBasicLamda(
+      'create-product-lambda',
+      'createProductLambda',
+      'postProduct',
+    );
+
+    productsResource.addMethod(
+      'POST',
+      apiGatewayService.createLamdaIntegration(
+        createProductLambda,
+        'productsNew',
+      ),
       {
-        methodResponses: [
-          {
-            statusCode: '200',
-            responseParameters: {
-              'method.response.header.Access-Control-Allow-Origin': true,
-            },
-          },
-        ],
+        methodResponses: apiGatewayService.METHOD_RESPONSES,
       },
     );
+
+    const lambdas = [
+      addProductsLambda,
+      getProductsListLambda,
+      getProductsByIdLambda,
+      createProductLambda,
+    ];
+
+    lambdas.forEach((fn) => {
+      productsTable.grantReadWriteData(fn);
+      stockTable.grantReadWriteData(fn);
+    });
   }
 }
