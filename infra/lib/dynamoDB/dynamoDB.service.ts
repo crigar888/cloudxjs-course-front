@@ -4,16 +4,19 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
 
 export class DynamoDBService {
-  public readonly TABLES_NAMES = {
+  private scope: Construct;
+  public static readonly TABLES_NAMES = {
     products: 'products',
     stock: 'stock',
   };
 
-  constructor() {}
+  constructor(scope: Construct) {
+    this.scope = scope;
+  }
 
-  public createTables(scope: Construct) {
-    const productsTable = new dynamodb.Table(scope, 'ProductsTable', {
-      tableName: this.TABLES_NAMES.products,
+  public createTables() {
+    const productsTable = new dynamodb.Table(this.scope, 'ProductsTable', {
+      tableName: DynamoDBService.TABLES_NAMES.products,
       partitionKey: {
         name: 'id',
         type: dynamodb.AttributeType.STRING,
@@ -21,8 +24,8 @@ export class DynamoDBService {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    const stockTable = new dynamodb.Table(scope, 'StockTable', {
-      tableName: this.TABLES_NAMES.stock,
+    const stockTable = new dynamodb.Table(this.scope, 'StockTable', {
+      tableName: DynamoDBService.TABLES_NAMES.stock,
       partitionKey: {
         name: 'product_id',
         type: dynamodb.AttributeType.STRING,
@@ -31,9 +34,5 @@ export class DynamoDBService {
     });
 
     return { productsTable, stockTable };
-  }
-
-  public getTablesNames() {
-    return this.TABLES_NAMES;
   }
 }

@@ -9,7 +9,7 @@ const dynamoDB = new DynamoDBClient({ region: 'us-east-1' });
 const productsTable = process.env.PRODUCTS_TABLE || 'products';
 const stockTable = process.env.STOCK_TABLE || 'stock';
 
-export const addProducts: Handler = async () => {
+export const main: Handler = async () => {
   try {
     const products = [
       {

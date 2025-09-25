@@ -7,17 +7,18 @@ import * as path from 'path';
 import { DynamoDBService } from '../dynamoDB/dynamoDB.service';
 
 export class LambdaService {
-  private dynamoService = new DynamoDBService();
+  private scope: Construct;
 
-  constructor() {}
+  constructor(scope: Construct) {
+    this.scope = scope;
+  }
 
   public createBasicLamda(
-    scope: Construct,
     id: string,
     name: string,
     handlerName: string,
   ): NodejsFunction {
-    const createProductLambda = new NodejsFunction(scope, id, {
+    const createProductLambda = new NodejsFunction(this.scope, id, {
       functionName: name,
       runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 1024,
@@ -25,8 +26,8 @@ export class LambdaService {
       entry: path.join(__dirname, `./handlers/${handlerName}.ts`),
       handler: 'main',
       environment: {
-        TABLE_NAME: this.dynamoService.getTablesNames().products,
-        STOCK_TABLE: this.dynamoService.getTablesNames().stock,
+        TABLE_NAME: DynamoDBService.TABLES_NAMES.products,
+        STOCK_TABLE: DynamoDBService.TABLES_NAMES.stock,
       },
     });
 
