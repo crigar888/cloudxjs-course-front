@@ -22,7 +22,7 @@ export class ApiGatewayService {
   ];
 
   public readonly RESPONSE_PARAMETERS = {
-    'method.response.header.Access-Control-Allow-Origin': `'${this.URLS.app}'`,
+    'method.response.header.Access-Control-Allow-Origin': "'*'",
     'method.response.header.Access-Control-Allow-Headers':
       "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
     'method.response.header.Access-Control-Allow-Methods': "'GET,OPTIONS'",
@@ -33,6 +33,9 @@ export class ApiGatewayService {
     productsNew: { 'application/json': '$input.body' },
     productId: {
       'application/json': `{ "productId": "$input.params('productId')" }`,
+    },
+    import: {
+      'application/json': `{ "name": "$input.params('name')" }`,
     },
   };
 
@@ -66,7 +69,7 @@ export class ApiGatewayService {
     allowMethods: string[],
   ) {
     resource.addCorsPreflight({
-      allowOrigins: [this.URLS.app],
+      allowOrigins: ['*'],
       allowMethods: allowMethods,
     });
   }

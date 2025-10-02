@@ -1,4 +1,5 @@
 <main class="container">
+  <app-import-file></app-import-file>
   @for (product of products(); track $index) {
     <app-product-item [product]="product" [index]="$index"> </app-product-item>
   }

@@ -20,12 +20,19 @@ export class ErrorPrintInterceptor implements HttpInterceptor {
     return next.handle(request).pipe(
       tap({
         error: () => {
-          const url = new URL(request.url);
+          let urlPath = request.url;
 
-          this.notificationService.showError(
-            `Request to "${url.pathname}" failed. Check the console for the details`,
-            0
-          );
+        try {
+          const url = new URL(request.url, window.location.origin); // add base for relative paths
+          urlPath = url.pathname;
+        } catch {
+          // leave urlPath as request.url
+        }
+
+        this.notificationService.showError(
+          `Request to "${urlPath}" failed. Check the console for the details`,
+          0
+        );
         },
       })
     );

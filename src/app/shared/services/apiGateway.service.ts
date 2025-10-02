@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of, switchMap, throwError } from 'rxjs';
 import { Product } from '../../products/product.interface';
 
 @Injectable({
@@ -17,5 +17,26 @@ export class ApiGatewayService {
    */
   getProducts(): Observable<Product[]> {
     return this.http.get<Product[]>(`${this.baseUrl}/products`);
+  }
+
+  uploadCsv(file: File, fileName: string): Observable<any> {
+    if (!file) {
+      console.error('No file provided for upload.');
+      return throwError(() => new Error('No file provided'));
+    }
+
+    return this.http.get<{ url: string }>(
+      `${this.baseUrl}/import?name=${fileName}`
+    ).pipe(
+      switchMap((response: any) => {
+        const signedUrl = response.uploadUrl;
+        console.log('Obtained signed URL:', signedUrl);
+
+        return this.http.put(signedUrl, file, {
+          headers: { 'Content-Type': file.type },
+          responseType: 'text'
+        });
+      })
+    );
   }
 }
