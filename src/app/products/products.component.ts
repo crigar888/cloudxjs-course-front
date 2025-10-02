@@ -2,18 +2,19 @@ import {
   ChangeDetectionStrategy,
   Component,
   effect,
-  inject,
+  inject
 } from '@angular/core';
-import { ProductItemComponent } from './product-item/product-item.component';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { ImportFileComponent } from '../import-file/import-file.component';
 import { ApiGatewayService } from '../shared/services/apiGateway.service';
+import { ProductItemComponent } from './product-item/product-item.component';
 
 @Component({
   selector: 'app-products',
   templateUrl: './products.component.html',
   styleUrls: ['./products.component.scss'],
   standalone: true,
-  imports: [ProductItemComponent],
+  imports: [ProductItemComponent, ImportFileComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProductsComponent {
@@ -27,7 +28,9 @@ export class ProductsComponent {
   //   initialValue: [],
   // });
 
-  products = toSignal(inject(ApiGatewayService).getProducts(), {
+  private apiGatewayService = inject(ApiGatewayService);
+
+  products = toSignal(this.apiGatewayService.getProducts(), {
     initialValue: [],
   });
 }
