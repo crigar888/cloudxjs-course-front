@@ -7,6 +7,9 @@ import { LambdaService } from '../lambdas/lambda.service';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import { ApiGatewayService } from '../gateway/apiGateway.service';
 import * as s3n from "aws-cdk-lib/aws-s3-notifications";
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as sqs from "aws-cdk-lib/aws-sqs";
+
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -77,5 +80,31 @@ export class ImportServiceStack extends cdk.Stack {
       new s3n.LambdaDestination(importFileParserLambda),
       { prefix: "uploaded/" }
     );
+
+    const productsTable = dynamodb.Table.fromTableName(
+      this,
+      'ProductsTable',
+      'products'
+    );
+
+    const stockTable = dynamodb.Table.fromTableName(
+      this,
+      'StockTable',
+      'stock'
+    );
+
+    // 👇 Dar permisos a la Lambda
+    productsTable.grantReadWriteData(importFileParserLambda);
+    stockTable.grantReadWriteData(importFileParserLambda);
+
+    const productQueue = sqs.Queue.fromQueueArn(
+      this,
+      "ImportedProductQueue",
+      cdk.Fn.importValue("ProductQueueArn") 
+    );
+
+    productQueue.grantSendMessages(importFileParserLambda);
+
+    importFileParserLambda.addEnvironment('SQS_URL', productQueue.queueUrl);
   }
 }
