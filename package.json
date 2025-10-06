@@ -67,8 +67,8 @@
     "typescript": "~5.3.3"
   },
   "lint-staged": {
-    "*.{ts,html}": [
-      "eslint --fix"
-    ]
-  }
+  "*.{ts,html}": [
+    "eslint --max-warnings=0 --fix"
+  ]
+}
 }
