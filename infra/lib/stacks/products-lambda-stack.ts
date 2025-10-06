@@ -1,5 +1,9 @@
 // Filename: hello-lambda-stack.ts
 import * as cdk from 'aws-cdk-lib';
+import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as sns from 'aws-cdk-lib/aws-sns';
+import * as subs from 'aws-cdk-lib/aws-sns-subscriptions';
+import * as sqs from "aws-cdk-lib/aws-sqs";
 import { Construct } from 'constructs';
 import { DynamoDBService } from '../dynamoDB/dynamoDB.service';
 import { ApiGatewayService } from '../gateway/apiGateway.service';
@@ -82,16 +86,56 @@ export class ProductsLambdaStack extends cdk.Stack {
       },
     );
 
+    //SQS
+
+    const catalogBatchProcessLambda = lambdaService.createBasicLamda(
+      'catalog-batch-process-lambda',
+      'catalogBatchProcessLambda',
+      'catalogBatchProcess',
+    );
+
+    const productSqs = new sqs.Queue(this, "product-sqs-v1", {
+      visibilityTimeout: cdk.Duration.seconds(30), // should be > lambda timeout
+    });
+
+    new cdk.CfnOutput(this, "ProductQueueArn", {
+      value: productSqs.queueArn,
+      exportName: "ProductQueueArn",
+    });
+
+    catalogBatchProcessLambda.addEventSource(
+      new SqsEventSource(productSqs, {
+        batchSize: 5,
+      })
+    );
+
     const lambdas = [
       addProductsLambda,
       getProductsListLambda,
       getProductsByIdLambda,
       createProductLambda,
+      catalogBatchProcessLambda
     ];
 
     lambdas.forEach((fn) => {
       productsTable.grantReadWriteData(fn);
       stockTable.grantReadWriteData(fn);
     });
+
+    //SNS
+
+    const createProductTopic = new sns.Topic(this, 'CreateProductTopic', {
+      displayName: 'Product creation notifications',
+      topicName: 'createProductTopic',
+    });
+
+    createProductTopic.addSubscription(
+      new subs.EmailSubscription('crigar888@gmail.com')
+    );
+
+    createProductTopic.grantPublish(catalogBatchProcessLambda);
+
+    catalogBatchProcessLambda.addEnvironment('SNS_TOPIC_ARN', createProductTopic.topicArn);
+
   }
 }
