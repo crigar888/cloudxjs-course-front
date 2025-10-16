@@ -25,8 +25,18 @@ export class ApiGatewayService {
       return throwError(() => new Error('No file provided'));
     }
 
+    const authorization_token = localStorage.getItem('authorization_token');
+    if (!authorization_token) {
+      console.error('Authorization token not found in localStorage');
+      return throwError(() => new Error('Missing authorization token'));
+    }
+
+    const headers = {
+      Authorization: `Basic ${authorization_token}`,
+    };
+
     return this.http.get<{ url: string }>(
-      `${this.baseUrl}/import?name=${fileName}`
+      `${this.baseUrl}/import?name=${fileName}`,
     ).pipe(
       switchMap((response: any) => {
         const signedUrl = response.uploadUrl;

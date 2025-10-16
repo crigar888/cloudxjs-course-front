@@ -9,6 +9,7 @@ import { ApiGatewayService } from '../gateway/apiGateway.service';
 import * as s3n from "aws-cdk-lib/aws-s3-notifications";
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as sqs from "aws-cdk-lib/aws-sqs";
+import { AuthorizationService } from '../authorization/authorization-serive';
 
 
 export class ImportServiceStack extends cdk.Stack {
@@ -60,11 +61,54 @@ export class ImportServiceStack extends cdk.Stack {
       'import',
     );
     const importResource = api.root.addResource('import');
-    importResource.addMethod('GET', importLambdaIntegration, {
-      methodResponses: apiGatewayService.METHOD_RESPONSES,
+
+    // autorization 
+
+    const authorizationService = new AuthorizationService(this);
+    const basicAuthorizer = authorizationService.createAuthorizer();
+
+    importResource.addMethod('OPTIONS', new apigateway.MockIntegration({
+      integrationResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+          'method.response.header.Access-Control-Allow-Methods': "'GET,OPTIONS'",
+          'method.response.header.Access-Control-Allow-Origin': "'*'",
+        },
+        responseTemplates: {
+          'application/json': '',
+        },
+      }],
+      passthroughBehavior: apigateway.PassthroughBehavior.NEVER,
+      requestTemplates: {
+        'application/json': '{"statusCode": 200}',
+      },
+    }), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Headers': true,
+          'method.response.header.Access-Control-Allow-Methods': true,
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }],
     });
 
-    apiGatewayService.addCoresPreflight(importResource, ['GET', 'POST', 'PUT']);
+    importResource.addMethod('GET', importLambdaIntegration, {
+      authorizer: basicAuthorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+      methodResponses: [
+      {
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+          'method.response.header.Access-Control-Allow-Headers': true,
+          'method.response.header.Access-Control-Allow-Methods': true,
+        },
+      },
+    ],
+    });
+
 
     bucket.grantReadWrite(importProductsFileLambda);
     importProductsFileLambda.addEnvironment('BUCKET_NAME', bucket.bucketName);
@@ -106,5 +150,9 @@ export class ImportServiceStack extends cdk.Stack {
     productQueue.grantSendMessages(importFileParserLambda);
 
     importFileParserLambda.addEnvironment('SQS_URL', productQueue.queueUrl);
+
+    
+
+
   }
 }

@@ -57,6 +57,9 @@ export class ApiGatewayService {
         {
           statusCode: '200',
           responseParameters: this.RESPONSE_PARAMETERS,
+          responseTemplates: {
+            'application/json': '',
+          },
         },
       ],
       requestTemplates:
@@ -71,6 +74,7 @@ export class ApiGatewayService {
     resource.addCorsPreflight({
       allowOrigins: ['*'],
       allowMethods: allowMethods,
+      allowHeaders: ['*'],
     });
   }
 }

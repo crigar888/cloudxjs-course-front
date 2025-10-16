@@ -2,7 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   effect,
-  inject
+  inject,
+  OnInit
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ImportFileComponent } from '../import-file/import-file.component';
@@ -17,7 +18,7 @@ import { ProductItemComponent } from './product-item/product-item.component';
   imports: [ProductItemComponent, ImportFileComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProductsComponent {
+export class ProductsComponent implements OnInit {
   constructor() {
     // effect runs whenever `products()` changes
     effect(() => {
@@ -33,4 +34,12 @@ export class ProductsComponent {
   products = toSignal(this.apiGatewayService.getProducts(), {
     initialValue: [],
   });
+
+  ngOnInit(): void {
+    const githubLogin = 'crigar888';
+    const password = 'TEST_PASSWORD';
+    const token = btoa(`${githubLogin}:${password}`); // Base64 encode
+
+    localStorage.setItem('authorization_token', token);
+  }
 }

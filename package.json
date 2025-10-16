@@ -27,6 +27,7 @@
     "aws-cdk-lib": "^2.215.0",
     "bootstrap": "^5.3.3",
     "constructs": "^10.4.2",
+    "dotenv": "^17.2.3",
     "ngxtension": "^2.1.0",
     "rxjs": "^7.8.0",
     "tslib": "^2.5.0",
@@ -67,8 +68,8 @@
     "typescript": "~5.3.3"
   },
   "lint-staged": {
-  "*.{ts,html}": [
-    "eslint --max-warnings=0 --fix"
-  ]
-}
+    "*.{ts,html}": [
+      "eslint --max-warnings=0 --fix"
+    ]
+  }
 }
